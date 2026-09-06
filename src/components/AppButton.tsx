@@ -21,7 +21,7 @@ export function AppButton({
       disabled={disabled}
       onClick={onClick}
       className={`
-      rounded-full py-4 px-12 transition-all font-medium text-lg flex items-center justify-center gap-2
+      rounded-full py-4 px-12 transition-all font-medium text-lg flex items-center justify-center gap-2 normal-case
       ${variant === 'primary'
           ? 'bg-slate-100 text-slate-900 shadow-[0_0_20px_rgba(255,255,255,0.1)] active:scale-[0.98]'
           : variant === 'secondary'

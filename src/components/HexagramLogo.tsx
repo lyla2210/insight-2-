@@ -39,11 +39,11 @@ export function HexagramLogo({
       </div>
       <div className="flex flex-col items-center">
         <div
-          className={`${size === 'lg' ? 'text-2xl' : 'text-[10px]'} font-bold tracking-[0.3em] text-white opacity-90`}
+          className={`${size === 'lg' ? 'text-2xl' : 'text-[10px]'} font-medium tracking-[0.3em] text-white opacity-90`}
         >
           Insight
         </div>
-        <div className={`${size === 'lg' ? 'text-3xl' : 'text-xs'} font-black text-white`}>
+        <div className={`${size === 'lg' ? 'text-3xl' : 'text-xs'} font-medium text-white`}>
           六爻
         </div>
       </div>

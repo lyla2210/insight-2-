@@ -5,9 +5,11 @@ export type MotionPermission = 'granted' | 'denied' | 'prompt' | 'unsupported';
 interface UseShakeOptions {
   enabled: boolean;
   onShake: () => void;
-  /** Magnitude delta threshold (m/s²). Lower = more sensitive. */
+  /** Magnitude delta threshold (m/s²). Higher = less sensitive. */
   threshold?: number;
-  /** Minimum gap between shakes (ms). */
+  /** Quiet level after a shake before re-arming. */
+  settleThreshold?: number;
+  /** Hard minimum gap between accepted shakes (ms). */
   cooldownMs?: number;
 }
 
@@ -17,7 +19,6 @@ function hasDeviceMotion(): boolean {
 
 export function isInsecureMotionContext(): boolean {
   if (typeof window === 'undefined') return false;
-  // localhost / https are secure; bare LAN http often blocks or starves sensors
   return window.isSecureContext === false;
 }
 
@@ -39,11 +40,9 @@ function needsIosOrientationPermission(): boolean {
 
 /**
  * Must be called from a direct user gesture (e.g. Connect Dice onClick).
- * iOS shows the system “Motion & Orientation” dialog.
  */
 export async function requestDeviceMotionPermission(): Promise<MotionPermission> {
   if (!hasDeviceMotion()) return 'unsupported';
-
   if (!needsIosMotionPermission()) return 'granted';
 
   try {
@@ -72,7 +71,6 @@ export async function requestDeviceMotionPermission(): Promise<MotionPermission>
 }
 
 function readAcceleration(event: DeviceMotionEvent): { x: number; y: number; z: number } | null {
-  // Prefer linear acceleration; fall back to gravity-inclusive (more widely available)
   const acc = event.acceleration;
   if (acc && acc.x != null && acc.y != null && acc.z != null) {
     return { x: acc.x, y: acc.y, z: acc.z };
@@ -90,11 +88,18 @@ function magnitude({ x, y, z }: { x: number; y: number; z: number }) {
   return Math.sqrt(x * x + y * y + z * z);
 }
 
+/**
+ * Peak-and-settle shake detector:
+ * fire once when magnitude jumps above threshold, then stay locked until
+ * motion settles below settleThreshold AND cooldown has elapsed.
+ * Prevents one physical shake from counting as two.
+ */
 export function useShake({
   enabled,
   onShake,
-  threshold = 2.8,
-  cooldownMs = 900,
+  threshold = 7.5,
+  settleThreshold = 2.2,
+  cooldownMs = 2200,
 }: UseShakeOptions) {
   const [permission, setPermission] = useState<MotionPermission>(() => {
     if (!hasDeviceMotion()) return 'unsupported';
@@ -104,6 +109,7 @@ export function useShake({
 
   const lastMag = useRef<number | null>(null);
   const lastShakeAt = useRef(0);
+  const armed = useRef(true);
   const receivingRef = useRef(false);
   const onShakeRef = useRef(onShake);
   onShakeRef.current = onShake;
@@ -119,6 +125,7 @@ export function useShake({
       receivingRef.current = false;
       setReceivingMotion(false);
       lastMag.current = null;
+      armed.current = true;
       return;
     }
     if (permission !== 'granted' || !hasDeviceMotion()) return;
@@ -139,15 +146,26 @@ export function useShake({
 
       const delta = Math.abs(mag - prev);
       const now = Date.now();
-      if (delta < threshold || now - lastShakeAt.current < cooldownMs) return;
+      const sinceShake = now - lastShakeAt.current;
 
+      // Re-arm only after cooldown AND motion has settled
+      if (!armed.current) {
+        if (sinceShake >= cooldownMs && delta < settleThreshold) {
+          armed.current = true;
+        }
+        return;
+      }
+
+      if (delta < threshold) return;
+
+      armed.current = false;
       lastShakeAt.current = now;
       onShakeRef.current();
     };
 
     window.addEventListener('devicemotion', handleMotion, { passive: true });
     return () => window.removeEventListener('devicemotion', handleMotion);
-  }, [enabled, permission, threshold, cooldownMs]);
+  }, [enabled, permission, threshold, settleThreshold, cooldownMs]);
 
   return {
     isSupported: hasDeviceMotion(),

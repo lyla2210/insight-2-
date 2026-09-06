@@ -1,8 +1,18 @@
 import { motion } from 'motion/react';
 
-export function HexagramGrid({ results }: { results: number[] }) {
+export function HexagramGrid({
+  results,
+  compact = false,
+}: {
+  results: number[];
+  compact?: boolean;
+}) {
+  const cell = compact ? 'w-3 h-3' : 'w-4 h-4';
+  const gap = compact ? 'gap-2' : 'gap-2.5';
+  const mb = compact ? 'mb-0' : 'mb-6';
+
   return (
-    <div className="grid grid-cols-6 gap-2.5 mb-6">
+    <div className={`grid grid-cols-6 ${gap} ${mb}`}>
       {[...Array(36)].map((_, i) => {
         const row = Math.floor(i / 6);
         const col = i % 6;
@@ -25,7 +35,7 @@ export function HexagramGrid({ results }: { results: number[] }) {
               repeat: active ? Infinity : 0,
               ease: 'easeInOut',
             }}
-            className={`w-4 h-4 rounded-sm ${active ? 'hex-dot-glow' : 'bg-white/[0.06]'}`}
+            className={`${cell} rounded-sm ${active ? 'hex-dot-glow' : 'bg-white/[0.06]'}`}
           />
         );
       })}

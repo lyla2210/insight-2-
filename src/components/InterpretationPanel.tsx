@@ -20,8 +20,8 @@ export function InterpretationPanel({
   const detailPreview = details || preview;
 
   return (
-    <div className="w-full space-y-4 normal-case font-sans">
-      <h3 className="text-xl font-black text-white tracking-tight">Interpretation</h3>
+    <div className="w-full space-y-4 normal-case font-normal">
+      <h3 className="text-xl font-medium text-white tracking-tight">Interpretation</h3>
 
       {showStructuredSections ? (
         <>
